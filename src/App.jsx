@@ -3,21 +3,18 @@ import router from './routes/router'
 import store from './redux/store'
 import { Provider } from 'react-redux'
 import io from 'socket.io-client'
-import { useEffect, useState } from 'react'
+import { API_BASE_URL } from './config/api'
+import { useEffect } from 'react'
 
 function App() {
-  const [socket, setSocket] = useState(null)
-
   useEffect(() => {
-    const newSocket = io('http://localhost:3000', {
+    const newSocket = io(API_BASE_URL, {
       query: {
         token: localStorage.getItem('authorization')
           ? localStorage.getItem('authorization')
           : null,
       },
     })
-    setSocket(newSocket)
-
     return () => {
       newSocket.disconnect()
     }

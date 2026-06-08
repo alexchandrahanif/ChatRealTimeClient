@@ -1,6 +1,6 @@
 import { EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons'
 import { message, Button, Input, Space } from 'antd'
-import axios from 'axios'
+import { api } from '../config/api'
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Notification from '../utils/Notification'
@@ -34,8 +34,8 @@ const RegisterPage = () => {
     }
 
     try {
-      let { data } = await axios({
-        url: 'http://localhost:3000/user/register',
+      let { data } = await api({
+        url: '/user/register',
         method: 'POST',
         data: body,
       })

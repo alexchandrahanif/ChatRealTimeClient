@@ -1,15 +1,11 @@
-import axios from 'axios'
-const BaseUrl = 'http://localhost:3000'
+import { api } from '../../config/api'
 
 export function getAllGroupPersonal() {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/group/personal`,
+      const { data } = await api({
+        url: `/group/personal`,
         method: 'GET',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch({
@@ -25,12 +21,9 @@ export function getAllGroupPersonal() {
 export function getOneGroup(id) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/group/${id}`,
+      const { data } = await api({
+        url: `/group/${id}`,
         method: 'GET',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch({
@@ -46,12 +39,9 @@ export function getOneGroup(id) {
 export function createGroup(data) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/group`,
+      const { data } = await api({
+        url: `/group`,
         method: 'POST',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
         data,
       })
 
@@ -66,12 +56,9 @@ export function createGroup(data) {
 export function updateGroup(id, data) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/group/${id}`,
+      const { data } = await api({
+        url: `/group/${id}`,
         method: 'PATCH',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
         data,
       })
 
@@ -86,12 +73,9 @@ export function updateGroup(id, data) {
 export function deleteGroup(id) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/group/${id}`,
+      const { data } = await api({
+        url: `/group/${id}`,
         method: 'DELETE',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch(getAllGroupPersonal())
@@ -107,12 +91,9 @@ export function deleteGroup(id) {
 export function getOneMember(id) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/group/member/${id}`,
+      const { data } = await api({
+        url: `/group/member/${id}`,
         method: 'GET',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch({
@@ -128,12 +109,9 @@ export function getOneMember(id) {
 export function createMember(data) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/group/member`,
+      const { data } = await api({
+        url: `/group/member`,
         method: 'POST',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
         data,
       })
 
@@ -144,15 +122,12 @@ export function createMember(data) {
   }
 }
 
-export function updateStatusMember(GroupId, MemberId) {
+export function updateStatusMember(GroupId, MemberId, status) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/group/member/${GroupId}/${MemberId}`,
+      const { data } = await api({
+        url: `/group/member/${GroupId}/${MemberId}`,
         method: 'PATCH',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
         data: { status },
       })
 
@@ -166,12 +141,9 @@ export function updateStatusMember(GroupId, MemberId) {
 export function deleteMember(GroupId, MemberId) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/group/member/${GroupId}/${MemberId}`,
+      const { data } = await api({
+        url: `/group/member/${GroupId}/${MemberId}`,
         method: 'DELETE',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       return data
@@ -184,12 +156,9 @@ export function deleteMember(GroupId, MemberId) {
 export function memberLeaveGroup(GroupId, MemberId) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/group/member/leave/${GroupId}`,
+      const { data } = await api({
+        url: `/group/member/leave/${GroupId}`,
         method: 'DELETE',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       return data

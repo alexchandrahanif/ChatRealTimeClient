@@ -1,15 +1,11 @@
-import axios from 'axios'
-const BaseUrl = 'http://localhost:3000'
+import { api } from '../../config/api'
 
 export function getAllChatPersonal(ReceiverId) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/chat/personal/${ReceiverId}`,
+      const { data } = await api({
+        url: `/chat/personal/${ReceiverId}`,
         method: 'GET',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch({
@@ -25,12 +21,9 @@ export function getAllChatPersonal(ReceiverId) {
 export function getOneChat(id) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/chat/${id}`,
+      const { data } = await api({
+        url: `/chat/${id}`,
         method: 'GET',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch({
@@ -46,12 +39,9 @@ export function getOneChat(id) {
 export function createChat(body) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/chat`,
+      const { data } = await api({
+        url: `/chat`,
         method: 'POST',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
         data: body,
       })
 
@@ -65,12 +55,9 @@ export function createChat(body) {
 export function updateChat(id, data) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/chat/${id}`,
+      const { data } = await api({
+        url: `/chat/${id}`,
         method: 'PATCH',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
         data,
       })
 
@@ -84,12 +71,9 @@ export function updateChat(id, data) {
 export function updateStatusChat(SenderId, status) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/chat/status/${SenderId}`,
+      const { data } = await api({
+        url: `/chat/status/${SenderId}`,
         method: 'PATCH',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
         data: {
           status,
         },
@@ -105,12 +89,9 @@ export function updateStatusChat(SenderId, status) {
 export function deleteChat(id) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/chat/${id}`,
+      const { data } = await api({
+        url: `/chat/${id}`,
         method: 'DELETE',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       return data

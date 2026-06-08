@@ -22,7 +22,7 @@ import {
   IoCallOutline,
   IoSettingsOutline,
 } from 'react-icons/io5'
-import { LuPlusSquare } from 'react-icons/lu'
+import { LuSquarePlus } from 'react-icons/lu'
 
 import { useNavigate } from 'react-router-dom'
 import potongString from '../utils/String'
@@ -273,7 +273,7 @@ const Sidabar = () => {
         className="py-1 px-2 flex items-center  h-[32px] font-medium cursor-pointer  rounded-md  gap-1 hover:bg-sky-700 hover:text-white"
         onClick={() => {}}
       >
-        <LuPlusSquare /> Contact
+        <LuSquarePlus /> Contact
       </button>
     </div>
   )

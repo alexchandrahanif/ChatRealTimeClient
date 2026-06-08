@@ -1,15 +1,11 @@
-import axios from 'axios'
-const BaseUrl = 'http://localhost:3000'
+import { api } from '../../config/api'
 
 export function getAllGroupChatPersonal(GroupId) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/groupChat/personal/${GroupId}`,
+      const { data } = await api({
+        url: `/groupChat/personal/${GroupId}`,
         method: 'GET',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch({
@@ -25,12 +21,9 @@ export function getAllGroupChatPersonal(GroupId) {
 export function getOneGroupChat(id) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/groupChat/${id}`,
+      const { data } = await api({
+        url: `/groupChat/${id}`,
         method: 'GET',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch({
@@ -46,16 +39,13 @@ export function getOneGroupChat(id) {
 export function createGroupChat(data) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/groupChat`,
+      const { data } = await api({
+        url: `/groupChat`,
         method: 'POST',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
         data,
       })
 
-      dispatch(getAllgroupChatPersonal())
+      dispatch(getAllGroupChatPersonal(data.GroupId))
       return data
     } catch (error) {
       return error
@@ -66,12 +56,9 @@ export function createGroupChat(data) {
 export function updateGroupChat(id, data) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/groupChat/${id}`,
+      const { data } = await api({
+        url: `/groupChat/${id}`,
         method: 'PATCH',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
         data,
       })
 
@@ -85,12 +72,9 @@ export function updateGroupChat(id, data) {
 export function deleteGroupChat(id) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/groupChat/${id}`,
+      const { data } = await api({
+        url: `/groupChat/${id}`,
         method: 'DELETE',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       return data

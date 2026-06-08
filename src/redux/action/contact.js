@@ -1,15 +1,11 @@
-import axios from 'axios'
-const BaseUrl = 'http://localhost:3000'
+import { api } from '../../config/api'
 
 export function getAllContactPersonal() {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/contact/personal`,
+      const { data } = await api({
+        url: `/contact/personal`,
         method: 'GET',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch({
@@ -25,12 +21,9 @@ export function getAllContactPersonal() {
 export function getAllContact() {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/contact`,
+      const { data } = await api({
+        url: `/contact`,
         method: 'GET',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch({
@@ -46,12 +39,9 @@ export function getAllContact() {
 export function getOneContact(id) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/contact/${id}`,
+      const { data } = await api({
+        url: `/contact/${id}`,
         method: 'GET',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch({
@@ -67,12 +57,9 @@ export function getOneContact(id) {
 export function createContact(body) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/contact`,
+      const { data } = await api({
+        url: `/contact`,
         method: 'POST',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
         data: body,
       })
 
@@ -86,12 +73,9 @@ export function createContact(body) {
 export function updateContact(id, data) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/contact/${id}`,
+      const { data } = await api({
+        url: `/contact/${id}`,
         method: 'PATCH',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
         data,
       })
 
@@ -106,12 +90,9 @@ export function updateContact(id, data) {
 export function deleteContact(id) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/contact${id}`,
+      const { data } = await api({
+        url: `/contact${id}`,
         method: 'DELETE',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch(getAllContactPersonal())

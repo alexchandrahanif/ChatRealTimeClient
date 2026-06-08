@@ -1,15 +1,11 @@
-import axios from 'axios'
-const BaseUrl = 'http://localhost:3000'
+import { api } from '../../config/api'
 
 export function getAllUsers() {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/user`,
+      const { data } = await api({
+        url: `/user`,
         method: 'GET',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch({
@@ -25,12 +21,9 @@ export function getAllUsers() {
 export function getOneUser(phoneNumber) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/user/${phoneNumber}`,
+      const { data } = await api({
+        url: `/user/${phoneNumber}`,
         method: 'GET',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch({
@@ -46,12 +39,9 @@ export function getOneUser(phoneNumber) {
 export function updateUser(id, data) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/user/${id}`,
+      const { data } = await api({
+        url: `/user/${id}`,
         method: 'PATCH',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
         data: data,
       })
 
@@ -67,8 +57,8 @@ export function updateUser(id, data) {
 export function verifyCode(id, code) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/user/verify/${id}`,
+      const { data } = await api({
+        url: `/user/verify/${id}`,
         method: 'POST',
         data: {
           code,
@@ -85,12 +75,9 @@ export function verifyCode(id, code) {
 export function updateStatusUser(id, status) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/user/status/${id}`,
+      const { data } = await api({
+        url: `/user/status/${id}`,
         method: 'PATCH',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
         data: {
           status,
         },
@@ -108,12 +95,9 @@ export function updateStatusUser(id, status) {
 export function deleteUser(id, status) {
   return async (dispatch) => {
     try {
-      const { data } = await axios({
-        url: `${BaseUrl}/user/${id}`,
+      const { data } = await api({
+        url: `/user/${id}`,
         method: 'DELETE',
-        headers: {
-          authorization: localStorage.getItem('authorization'),
-        },
       })
 
       dispatch(getAllUsers())

@@ -3,7 +3,7 @@ import { Button, Input, Space, message } from 'antd'
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Login } from '../assets'
-import axios from 'axios'
+import { api } from '../config/api'
 
 const LoginPage = () => {
   const navigate = useNavigate()
@@ -20,8 +20,8 @@ const LoginPage = () => {
         password,
       }
 
-      let { data } = await axios({
-        url: 'http://localhost:3000/user/login',
+      let { data } = await api({
+        url: '/user/login',
         method: 'POST',
         data: body,
       })
@@ -98,7 +98,7 @@ const LoginPage = () => {
 
             <div className="flex justify-center">
               <p className="text-slate-500">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <span
                   className="text-hijau hover:cursor-pointer"
                   onClick={() => navigate('/register')}
