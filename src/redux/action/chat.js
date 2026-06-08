@@ -1,5 +1,25 @@
 import { api } from '../../config/api'
 
+export function getConversations() {
+  return async (dispatch) => {
+    try {
+      const { data } = await api({
+        url: `/chat/conversations`,
+        method: 'GET',
+      })
+
+      dispatch({
+        type: 'Fetch/GetConversations',
+        payload: data.data,
+      })
+
+      return data
+    } catch (error) {
+      return error
+    }
+  }
+}
+
 export function getAllChatPersonal(ReceiverId) {
   return async (dispatch) => {
     try {
@@ -43,6 +63,7 @@ export function createChat(body) {
         url: `/chat`,
         method: 'POST',
         data: body,
+        headers: body instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
       })
 
       return data

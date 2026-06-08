@@ -1,5 +1,46 @@
 import { api } from '../../config/api'
 
+export function getProfile() {
+  return async (dispatch) => {
+    try {
+      const { data } = await api({
+        url: `/user/profile`,
+        method: 'GET',
+      })
+
+      dispatch({
+        type: 'Fetch/GetProfile',
+        payload: data.data,
+      })
+
+      return data
+    } catch (error) {
+      return error
+    }
+  }
+}
+
+export function updateProfile(data) {
+  return async (dispatch) => {
+    try {
+      const { data: response } = await api({
+        url: `/user/profile`,
+        method: 'PATCH',
+        data,
+        headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+      })
+
+      dispatch({
+        type: 'Fetch/GetProfile',
+        payload: response.data,
+      })
+
+      return response
+    } catch (error) {
+      return error
+    }
+  }
+}
 export function getAllUsers() {
   return async (dispatch) => {
     try {

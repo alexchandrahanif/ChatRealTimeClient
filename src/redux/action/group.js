@@ -43,6 +43,7 @@ export function createGroup(data) {
         url: `/group`,
         method: 'POST',
         data,
+        headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
       })
 
       dispatch(getAllGroupPersonal())
@@ -60,6 +61,7 @@ export function updateGroup(id, data) {
         url: `/group/${id}`,
         method: 'PATCH',
         data,
+        headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
       })
 
       dispatch(getAllGroupPersonal())

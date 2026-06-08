@@ -4,6 +4,7 @@ import ChatPage from '../pages/ChatPage'
 import LoginPage from '../pages/LoginPage'
 import RegisterPage from '../pages/RegisterPage'
 import ProfilePage from '../pages/ProfilePage'
+import GroupChatPage from '../pages/GroupChatPage'
 import Layout from '../layout/layout'
 
 const router = createBrowserRouter([
@@ -44,6 +45,10 @@ const router = createBrowserRouter([
       {
         path: '/profile',
         element: <ProfilePage />,
+      },
+      {
+        path: '/group/:groupId',
+        element: <GroupChatPage />,
       },
       {
         path: '/:phoneNumber',

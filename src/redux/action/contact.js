@@ -91,7 +91,7 @@ export function deleteContact(id) {
   return async (dispatch) => {
     try {
       const { data } = await api({
-        url: `/contact${id}`,
+        url: `/contact/${id}`,
         method: 'DELETE',
       })
 

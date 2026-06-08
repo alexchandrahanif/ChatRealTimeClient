@@ -1,4 +1,5 @@
 let initialState = {
+  Conversations: [],
   ChatPersonal: [],
   Chat: {},
 }
@@ -9,6 +10,11 @@ export function ChatReducer(state = initialState, actions) {
       return {
         ...state,
         ChatPersonal: actions.payload,
+      }
+    case 'Fetch/GetConversations':
+      return {
+        ...state,
+        Conversations: actions.payload,
       }
     case 'Fetch/GetOneChat':
       return {

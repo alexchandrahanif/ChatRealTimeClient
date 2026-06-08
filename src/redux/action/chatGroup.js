@@ -43,6 +43,7 @@ export function createGroupChat(data) {
         url: `/groupChat`,
         method: 'POST',
         data,
+        headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
       })
 
       dispatch(getAllGroupChatPersonal(data.GroupId))

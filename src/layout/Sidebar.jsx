@@ -1,520 +1,484 @@
-import { Input, Popover, Tooltip, message, Button, Modal } from 'antd'
-import React, { useEffect, useState } from 'react'
-
 import { SearchOutlined } from '@ant-design/icons'
+import { Dropdown, Input, Modal, message } from 'antd'
+import { useEffect, useMemo, useState } from 'react'
 import { FiEdit, FiLogOut } from 'react-icons/fi'
-import { PiChecksBold } from 'react-icons/pi'
-import { CiLogout } from 'react-icons/ci'
-import { RiContactsBookLine, RiContactsBookFill } from 'react-icons/ri'
+import { MdGroups } from 'react-icons/md'
 import { HiEllipsisVertical } from 'react-icons/hi2'
-import { IoPersonAdd } from 'react-icons/io5'
-
-import {
-  MdDarkMode,
-  MdOutlineDarkMode,
-  MdManageAccounts,
-  MdFullscreenExit,
-  MdOutlineFullscreen,
-} from 'react-icons/md'
 import {
   IoChatbubbleEllipsesOutline,
-  IoChatbubblesOutline,
-  IoCallOutline,
-  IoSettingsOutline,
+  IoLogOutOutline,
+  IoPersonAdd,
+  IoShieldCheckmarkOutline,
 } from 'react-icons/io5'
-import { LuSquarePlus } from 'react-icons/lu'
+import { MdOutlineDarkMode } from 'react-icons/md'
+import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate, useParams } from 'react-router-dom'
+import { API_BASE_URL } from '../config/api'
+import {
+  createContact,
+  deleteContact,
+  getAllContactPersonal,
+  updateContact,
+} from '../redux/action/contact'
+import { getProfile } from '../redux/action/user'
+import { createGroup, getAllGroupPersonal } from '../redux/action/group'
+import { getConversations } from '../redux/action/chat'
 
-import { useNavigate } from 'react-router-dom'
-import potongString from '../utils/String'
-import { Logo } from '../assets'
-import axios from 'axios'
-import { createContact, getAllContactPersonal } from '../redux/action/contact'
-import { useDispatch } from 'react-redux'
-import { useSelector } from 'react-redux'
+const avatarUrl =
+  'https://api.dicebear.com/8.x/personas/svg?backgroundColor=b6e3f4,c0aede,d1d4f9&seed='
 
-let data = [
-  {
-    id: 1,
-    nama: 'Alex Chandra',
-    jam: '10:10',
-    last: 'Oke Bang',
-  },
-  { id: 2, nama: 'Alex Chandra', jam: '10:10', last: 'Oke Bang' },
-  { id: 3, nama: 'Alex Chandra', jam: '10:10', last: 'Oke Bang' },
-  {
-    id: 4,
-    nama: 'Alex Chandra',
-    jam: '10:10',
-    last: 'Oke Bang mantap bener dah pokoknya mantap',
-  },
-  {
-    id: 5,
-    nama: 'Alex Chandra',
-    jam: '10:10',
-    last: 'Oke Bang mantap bener dah pokoknya mantap',
-  },
-  {
-    id: 6,
-    nama: 'Alex Chandra',
-    jam: '10:10',
-    last: 'Oke Bang mantap bener dah pokoknya mantap',
-  },
-  {
-    id: 7,
-    nama: 'Alex Chandra',
-    jam: '10:10',
-    last: 'Oke Bang mantap bener dah pokoknya mantap',
-  },
-  {
-    id: 8,
-    nama: 'Alex Chandra',
-    jam: '10:10',
-    last: 'Oke Bang mantap bener dah pokoknya mantap',
-  },
-  {
-    id: 9,
-    nama: 'Alex Chandra',
-    jam: '10:10',
-    last: 'Oke Bang mantap bener dah pokoknya mantap',
-  },
-  {
-    id: 10,
-    nama: 'Alex Chandra',
-    jam: '10:10',
-    last: 'Oke Bang mantap bener dah pokoknya mantap',
-  },
-]
+const getAvatarSrc = (user, fallback) => {
+  if (user?.avatar) return `${API_BASE_URL}/${user.avatar.replace(/^\.\//, '')}`
+  return `${avatarUrl}${fallback || user?.username || 'User'}`
+}
 
-let dataContact = [
-  {
-    id: 1,
-    nama: 'Alex Chandra Hanif',
-    about: 'Sibuk',
-  },
-  { id: 2, nama: 'Saber Roam', about: 'Sibuk' },
-  { id: 3, nama: 'Kagura', about: 'Sibuk' },
-  {
-    id: 4,
-    nama: 'Zilong',
-    about: 'Sibuk',
-  },
-  {
-    id: 5,
-    nama: 'Pascol',
-    about: 'Sibuk',
-  },
-  {
-    id: 6,
-    nama: 'Natan',
-    about: 'Sibuk',
-  },
-  {
-    id: 7,
-    nama: 'Balmond',
-    about: 'Sibuk',
-  },
-  {
-    id: 8,
-    nama: 'Hababi',
-    about: 'Sibuk',
-  },
-  {
-    id: 9,
-    nama: 'Cyclops',
-    about: 'Sibuk',
-  },
-  {
-    id: 10,
-    nama: 'Vale',
-    about: 'Sibuk',
-  },
-]
-
-let dataMenu = [
-  {
-    id: 1,
-    nama: 'Chat',
-    logo: <IoChatbubbleEllipsesOutline />,
-  },
-  {
-    id: 2,
-    nama: 'Group',
-    logo: <IoChatbubblesOutline />,
-  },
-  {
-    id: 4,
-    nama: 'Panggilan',
-    logo: <IoCallOutline />,
-  },
-  {
-    id: 5,
-    nama: 'Setting',
-    logo: <IoSettingsOutline />,
-  },
-]
-
-const Sidabar = () => {
+const Sidebar = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
-
-  const [selectedItemId, setSelectedItemId] = useState(null)
-  const [selectedMenuId, setSelectedMenuId] = useState(1)
-  const [isDark, setIsDark] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [openContact, setOpenContact] = useState(false)
-  const [menu, setMenu] = useState('Chat')
-
-  const [openAddContact, setOpenAddContact] = useState(false)
-
-  const handleOpenChange = (newOpen) => {
-    setOpenContact(newOpen)
-  }
-
-  const handleDarkMode = () => {
-    setIsDark(!isDark)
-    const html = document.querySelector('html')
-    if (!isDark) {
-      html.classList.add('dark')
-      localStorage.setItem('darkmode', 'dark')
-    } else {
-      html.classList.remove('dark')
-      localStorage.setItem('darkmode', 'light')
-    }
-  }
-
+  const { phoneNumber } = useParams()
   const { ContactPersonal } = useSelector((state) => state.ContactReducer)
-  const [username, setUsername] = useState('')
-  const [phoneNumber, setPhoneNumber] = useState('')
+  const { Profile } = useSelector((state) => state.UserReducer)
+  const { GroupPersonal } = useSelector((state) => state.GroupReducer)
+  const { Conversations } = useSelector((state) => state.ChatReducer)
+  const [search, setSearch] = useState('')
+  const [activeTab, setActiveTab] = useState('chats')
+  const [openContact, setOpenContact] = useState(false)
+  const [openLogout, setOpenLogout] = useState(false)
+  const [openGroup, setOpenGroup] = useState(false)
+  const [contactMode, setContactMode] = useState('create')
+  const [selectedContact, setSelectedContact] = useState(null)
+  const [newContact, setNewContact] = useState({ username: '', phoneNumber: '' })
+  const [newGroup, setNewGroup] = useState({ name: '', description: '', memberIds: [] })
+  const [openMemberPicker, setOpenMemberPicker] = useState(false)
+  const [draftMemberIds, setDraftMemberIds] = useState([])
+  const [isDarkMode, setIsDarkMode] = useState(() =>
+    document.documentElement.classList.contains('dark'),
+  )
+  const username = Profile?.username || localStorage.getItem('username') || 'User'
+  const about = Profile?.about || 'Available'
 
-  const handleItemChat = (id) => {
-    navigate(`/${id}`)
-    setSelectedItemId(id)
-    setSelectedItemId(null)
+  useEffect(() => {
+    dispatch(getProfile()).then((result) => {
+      if (result?.data) {
+        localStorage.setItem('username', result.data.username)
+        localStorage.setItem('email', result.data.email)
+        localStorage.setItem('phoneNumber', result.data.phoneNumber)
+      }
+    })
+    dispatch(getAllContactPersonal())
+    dispatch(getAllGroupPersonal())
+    dispatch(getConversations())
+  }, [dispatch])
+
+  const contacts = useMemo(() => {
+    return (ContactPersonal || []).filter((contact) => {
+      const name = contact.username || contact.Teman?.username || ''
+      const phone = contact.Teman?.phoneNumber || ''
+      return `${name} ${phone}`.toLowerCase().includes(search.toLowerCase())
+    })
+  }, [ContactPersonal, search])
+
+
+  const conversations = useMemo(() => {
+    return (Conversations || []).filter((conversation) => {
+      const user = conversation.user || {}
+      return `${user.username || ''} ${user.phoneNumber || ''}`.toLowerCase().includes(search.toLowerCase())
+    })
+  }, [Conversations, search])
+
+  const visibleContacts = contacts
+
+  const groups = GroupPersonal || []
+
+  const openCreateContact = () => {
+    setContactMode('create')
+    setSelectedContact(null)
+    setNewContact({ username: '', phoneNumber: '' })
+    setOpenContact(true)
   }
 
-  let handleClickContact = (id) => {
-    navigate(`/${id}`)
-    setSelectedItemId(id)
-    setSelectedMenuId(1)
-    setMenu('Chat')
+  const openEditContact = (contact) => {
+    setContactMode('edit')
+    setSelectedContact(contact)
+    setNewContact({
+      username: contact.username || contact.Teman?.username || '',
+      phoneNumber: contact.Teman?.phoneNumber || '',
+    })
+    setOpenContact(true)
   }
 
-  const handleItemMenu = (id, nama) => {
-    setSelectedMenuId(id)
-    setMenu(nama)
-  }
-
-  const handleAddContact = async () => {
-    const data = {
-      username,
-      phoneNumber,
+  const handleSaveContact = async () => {
+    if (!newContact.username.trim() || !newContact.phoneNumber.trim()) {
+      message.error('Nama dan nomor telepon wajib diisi')
+      return
     }
-    await dispatch(createContact(data))
-      .then((data) =>
-        message.loading('Loading', 1, () => {
-          if (data?.statusCode == 201) {
-            message.success(data.message, 1, () => {
-              dispatch(getAllContactPersonal())
-              setOpenAddContact(false)
-              setUsername('')
-              setPhoneNumber('')
-            })
-          } else {
-            message.error(data?.response.data.message)
-          }
-        })
-      )
-      .catch((error) => console.log(error))
+
+    const result =
+      contactMode === 'edit'
+        ? await dispatch(updateContact(selectedContact.id, { username: newContact.username }))
+        : await dispatch(createContact(newContact))
+
+    if (result?.statusCode === 200 || result?.statusCode === 201) {
+      message.success(contactMode === 'edit' ? 'Kontak berhasil diupdate' : 'Kontak berhasil ditambahkan')
+      setOpenContact(false)
+      setNewContact({ username: '', phoneNumber: '' })
+      setSelectedContact(null)
+      dispatch(getAllContactPersonal())
+    } else {
+      message.error(result?.response?.data?.message || 'Gagal menyimpan kontak')
+    }
+  }
+
+  const handleCreateGroup = async () => {
+    if (!newGroup.name.trim()) {
+      message.error('Nama group wajib diisi')
+      return
+    }
+
+    const payload = new FormData()
+    payload.append('name', newGroup.name)
+    payload.append('description', newGroup.description)
+    newGroup.memberIds.forEach((id) => payload.append('MemberId', id))
+
+    const result = await dispatch(createGroup(payload))
+    if (result?.statusCode === 201) {
+      message.success('Group berhasil dibuat')
+      setOpenGroup(false)
+      setNewGroup({ name: '', description: '', memberIds: [] })
+      dispatch(getAllGroupPersonal())
+    dispatch(getConversations())
+    } else {
+      message.error(result?.response?.data?.message || 'Gagal membuat group')
+    }
   }
 
   const handleLogout = () => {
-    message.success(
-      `Selamat datang kembali ${localStorage.getItem('username')}`
-    )
     localStorage.clear()
     navigate('/login')
   }
 
-  const toggleFullscreen = () => {
-    const element = document.documentElement
+  useEffect(() => {
+    const socket = window.chatSocket
+    if (!socket) return undefined
 
-    if (!document.fullscreenElement) {
-      element.requestFullscreen().catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`)
-      })
-      setIsFullscreen(true)
-    } else {
-      document.exitFullscreen()
-      setIsFullscreen(false)
+    const refreshPresence = () => {
+      dispatch(getAllContactPersonal())
+      dispatch(getConversations())
     }
+
+    socket.on('updateOnlineStatus', refreshPresence)
+    socket.on('newPersonalMessage', refreshPresence)
+    socket.on('personalMessageUpdated', refreshPresence)
+    socket.on('personalMessageDeleted', refreshPresence)
+    return () => {
+      socket.off('updateOnlineStatus', refreshPresence)
+      socket.off('newPersonalMessage', refreshPresence)
+      socket.off('personalMessageUpdated', refreshPresence)
+      socket.off('personalMessageDeleted', refreshPresence)
+    }
+  }, [dispatch])
+
+  const toggleDarkMode = () => {
+    const nextMode = !isDarkMode
+    setIsDarkMode(nextMode)
+    document.documentElement.classList.toggle('dark', nextMode)
+    localStorage.setItem('theme', nextMode ? 'dark' : 'light')
   }
 
-  const contentTitikChat = (
-    <div className={`flex flex-col w-[90px] gap-1 `}>
-      <button
-        className="px-2 py-2 flex items-center  h-[32px] font-medium cursor-pointer  rounded-md  gap-1 hover:bg-sky-700 hover:text-white"
-        onClick={toggleFullscreen}
-      >
-        {isFullscreen ? <MdOutlineFullscreen /> : <MdFullscreenExit />}
-        {isFullscreen ? 'Normal' : 'Full'}
-      </button>
-      <button
-        className="px-2 py-2 flex items-center  h-[32px] font-medium cursor-pointer  rounded-md  gap-1 hover:bg-sky-700 hover:text-white"
-        onClick={() => handleLogout()}
-      >
-        <FiLogOut /> Logout
-      </button>
-    </div>
-  )
-
-  const contentTitikContact = (
-    <div className={`flex flex-col w-[90px] gap-1 `}>
-      <button
-        className="py-1 px-2 flex items-center  h-[32px] font-medium cursor-pointer  rounded-md  gap-1 hover:bg-sky-700 hover:text-white"
-        onClick={() => {}}
-      >
-        <LuSquarePlus /> Contact
-      </button>
-    </div>
-  )
-
-  const contentContact = (
-    <div className="w-[250px]">
-      <div className="w-full flex justify-evenly items-center">
-        <Input
-          placeholder="Search user"
-          size="small"
-          className="w-[80%] h-[25px]"
-        />
-        <button
-          className="py-1 px-2 h-[25px] rounded-md text-[20px] hover:bg-slate-200 flex jus items-center"
-          onClick={() => {
-            setOpenAddContact(true), setOpenContact(false)
-          }}
-        >
-          <IoPersonAdd />
-        </button>
-      </div>
-      <div className="w-full mt-3 flex flex-col h-[400px] overflow-y-scroll">
-        {ContactPersonal
-          ? ContactPersonal.map((el) => {
-              return (
-                <div key={el.id}>
-                  <div
-                    className={`h-[60px] w-full flex p-2 rounded-lg hover:bg-slate-100`}
-                    key={el.id}
-                    onClick={() => {
-                      navigate(`/${el.Teman.phoneNumber}`)
-                      setOpenContact(false)
-                    }}
-                  >
-                    <div className="w-[20%] flex justify-center items-center">
-                      <img
-                        src="https://image.gambarpng.id/pngs/gambar-transparent-boy-cartoon-illustration_46930.png"
-                        alt="profile"
-                        className="w-[45px] h-[45px] rounded-full"
-                      />
-                    </div>
-                    <div className="w-[80%] px-2 ">
-                      <div className=" w-full flex justify-between ">
-                        <div>
-                          <p className="text-[15px] font-semibold">
-                            {el.username}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[12px] font-poppins text-slate-600 ">
-                            {el.jam}
-                          </p>
-                        </div>
-                      </div>
-                      <div className=" w-full flex items-center gap-1 text-slate-600 ">
-                        <div>
-                          <p className="text-[13px] ">
-                            {potongString(el.Teman.about, 35)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            })
-          : null}
-      </div>
-    </div>
-  )
-
-  useEffect(() => {
-    dispatch(getAllContactPersonal())
-  }, [])
+  const headerMenuItems = [
+    {
+      key: 'theme',
+      label: isDarkMode ? 'Light mode' : 'Dark mode',
+      icon: <MdOutlineDarkMode size={18} />,
+      onClick: toggleDarkMode,
+    },
+    {
+      key: 'group',
+      label: 'Buat group',
+      icon: <MdGroups size={18} />,
+      onClick: () => setOpenGroup(true),
+    },
+    {
+      key: 'contact',
+      label: 'Tambah kontak',
+      icon: <FiEdit size={18} />,
+      onClick: openCreateContact,
+    },
+    {
+      key: 'logout',
+      label: 'Logout',
+      icon: <FiLogOut size={18} />,
+      danger: true,
+      onClick: () => setOpenLogout(true),
+    },
+  ]
 
   return (
-    <div className=" flex w-full h-full dark:bg-bgDark">
-      {/* Kiri */}
-      <div className="w-[15%] h-full flex flex-col justify-between bg-slate-100 dark:bg-slate-800">
-        <div className="w-full h-[70px] flex justify-center items-center my-4">
-          <div className="w-[45px] h-[45px] bg-white rounded-md">
-            <img src={Logo} alt="Logo" />
+    <div className="flex h-full w-full flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <header className="flex h-16 shrink-0 items-center justify-between bg-[#f0f2f5] px-4 dark:bg-slate-800">
+        <button onClick={() => navigate('/profile')} className="flex min-w-0 items-center gap-3 text-left">
+          <img
+            src={getAvatarSrc(Profile, username)}
+            alt={username}
+            className="h-11 w-11 rounded-full bg-slate-200 object-cover"
+          />
+          <div className="min-w-0 md:hidden lg:block">
+            <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{username}</p>
+            <p className="truncate text-xs text-slate-500 dark:text-slate-400">{about}</p>
           </div>
+        </button>
+        <Dropdown menu={{ items: headerMenuItems }} trigger={['click']} placement="bottomRight">
+          <button className="rounded-full p-2 text-slate-600 transition hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700" title="Menu">
+            <HiEllipsisVertical size={24} />
+          </button>
+        </Dropdown>
+      </header>
+
+      <div className="border-b border-slate-100 bg-white px-3 py-3 dark:border-slate-800 dark:bg-slate-900">
+        <h1 className="mb-3 px-1 text-2xl font-black text-slate-900 dark:text-white">ChatRealtime</h1>
+        <div className="mb-3 grid grid-cols-3 gap-2 rounded-2xl bg-[#f0f2f5] p-1 dark:bg-slate-800">
+          {[['chats', 'Chats'], ['contacts', 'Contacts'], ['groups', 'Groups']].map(([key, label]) => (
+            <button key={key} onClick={() => setActiveTab(key)} className={`rounded-xl px-2 py-2 text-xs font-black transition ${activeTab === key ? 'bg-white text-[#00a884] shadow-sm dark:bg-slate-900' : 'text-slate-500 dark:text-slate-400'}`}>
+              {label}
+            </button>
+          ))}
         </div>
-        <div
-          className={`w-full h-full flex flex-col justify-start items-center gap-2`}
-        >
-          {dataMenu?.map((el) => {
-            const isSelected = el.id === selectedMenuId
-            return (
-              <div
-                key={el.id}
-                className={`w-[40px] h-[40px] rounded-md flex justify-center items-center text-[20px] hover:bg-sky-800 hover:text-white dark:text-white  ${
-                  isSelected ? 'bg-sky-700 text-white' : ''
-                }`}
-                onClick={() => handleItemMenu(el.id, el.nama)}
-              >
-                {el.logo}
-              </div>
-            )
-          })}
-        </div>
-        <div className="w-full h-[120px] flex flex-col gap-2 items-center py-4 ">
-          <div
-            className="w-[40px] h-[40px] rounded-md flex justify-center items-center text-[20px] hover:bg-sky-800 hover:text-white dark:text-white"
-            onClick={() => handleDarkMode()}
-          >
-            {isDark ? <MdOutlineDarkMode /> : <MdDarkMode />}{' '}
-          </div>
-          <div className="w-[40px] h-[40px] rounded-md flex justify-center items-center text-[20px] hover:bg-sky-800 hover:text-white dark:text-white ">
-            <img
-              src="https://image.gambarpng.id/pngs/gambar-transparent-boy-cartoon-illustration_46930.png"
-              alt="profile"
-              className="w-[30px] h-[30px] rounded-full"
-            />
-          </div>
+        <div className="relative">
+          <SearchOutlined className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-slate-400" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search or start a new chat"
+            className="h-11 rounded-xl border-none bg-[#f0f2f5] pl-11 text-sm shadow-none dark:bg-slate-800 dark:text-white"
+          />
         </div>
       </div>
 
-      {/* Kanan */}
-      {menu == 'Chat' ? (
-        <div className="w-[85%] h-full px-3 dark:bg-bgDark">
-          <div className=" w-full h-[17%]">
-            <div className="w-full h-[50px]  p-1 flex justify-between items-center ">
-              <div className="w-[80%] ">
-                <p className="text-xl font-semibold dark:text-white">Chats</p>
-              </div>
-              <div className="w-[20%] flex  text-xl font-light dark:text-white">
-                <div className="w-1/2 flex justify-center items-center ">
-                  <Popover
-                    content={contentContact}
-                    title="New Chat"
-                    trigger="click"
-                    placement="bottomLeft"
-                    open={openContact}
-                    onOpenChange={handleOpenChange}
-                  >
-                    <button>
-                      <FiEdit />
-                    </button>
-                  </Popover>
+      <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
+        {activeTab === 'groups' && groups.length > 0 ? (
+          <div className="border-b border-slate-100 py-2 dark:border-slate-800">
+            <p className="px-4 py-2 text-xs font-black uppercase tracking-wider text-slate-400">Groups</p>
+            {groups.map((group) => (
+              <button key={group.id} onClick={() => navigate(`/group/${group.id}`)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800">
+                <img src={group.groupImage ? `${API_BASE_URL}/${group.groupImage.replace(/^\.\//, '')}` : `${avatarUrl}${group.name}`} className="h-12 w-12 rounded-full bg-emerald-100 object-cover" />
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-slate-900 dark:text-white">{group.name}</p>
+                  <p className="truncate text-sm text-slate-500 dark:text-slate-400">{group.description || 'Group chat'}</p>
                 </div>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {activeTab === 'chats' && conversations.length > 0 ? (
+          conversations.map((conversation) => {
+            const friend = conversation.user || {}
+            const contact = contacts.find((item) => item.Teman?.id === friend.id)
+            const displayName = contact?.username || friend.phoneNumber || friend.username || 'Unknown'
+            const isActive = friend.phoneNumber === phoneNumber
+            const lastMessage = conversation.lastMessage
 
-                <div className="w-1/2 flex justify-center items-center">
-                  <Popover placement="bottomLeft" content={contentTitikChat}>
-                    <HiEllipsisVertical className="text-[25px]" />
-                  </Popover>
-                </div>
+            return (
+              <div key={friend.id} className={`group flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[#f5f6f6] dark:hover:bg-slate-800 ${isActive ? 'bg-[#f0f2f5] dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}>
+                <button onClick={() => navigate(`/${friend.phoneNumber}`)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                  <img src={getAvatarSrc(friend, displayName)} alt={displayName} className="h-12 w-12 shrink-0 rounded-full bg-slate-200 object-cover" />
+                  <div className="min-w-0 flex-1 border-b border-slate-100 pb-3 dark:border-slate-800">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="truncate text-[15px] font-semibold text-slate-900 dark:text-white">{displayName}</p>
+                      <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">{lastMessage?.createdAt ? new Date(lastMessage.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                    </div>
+                    <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">{lastMessage?.message || (lastMessage?.messageImage ? '📷 Gambar' : 'Mulai chat')}</p>
+                  </div>
+                </button>
               </div>
+            )
+          })
+        ) : activeTab === 'contacts' && visibleContacts.length > 0 ? (
+          visibleContacts.map((contact) => {
+            const friend = contact.Teman || {}
+            const displayName = contact.username || friend.username || 'Unknown'
+            const isActive = friend.phoneNumber === phoneNumber
+
+            return (
+              <div
+                key={contact.id || friend.id}
+                className={`group flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[#f5f6f6] dark:hover:bg-slate-800 ${isActive ? 'bg-[#f0f2f5] dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}
+              >
+                <button onClick={() => navigate(`/${friend.phoneNumber}`)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                  <img src={getAvatarSrc(friend, displayName)} alt={displayName} className="h-12 w-12 shrink-0 rounded-full bg-slate-200 object-cover" />
+                  <div className="min-w-0 flex-1 border-b border-slate-100 pb-3 dark:border-slate-800">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="truncate text-[15px] font-semibold text-slate-900 dark:text-white">{displayName}</p>
+                      <span className="inline-flex shrink-0 items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
+                        {friend.statusActive ? (
+                          <>
+                            <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" /></span>
+                            Online
+                          </>
+                        ) : friend.lastLogin ? `Terakhir online ${new Date(friend.lastLogin).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}` : 'Offline'}
+                      </span>
+                    </div>
+                    <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">{friend.about || 'Klik untuk mulai chat'}</p>
+                  </div>
+                </button>
+              </div>
+            )
+          })
+        ) : activeTab !== 'groups' ? (
+          <div className="flex h-full flex-col items-center justify-center px-8 text-center text-slate-500 dark:text-slate-400">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#e7f8f2] text-[#00a884]">
+              <IoChatbubbleEllipsesOutline size={34} />
             </div>
-            <div className={`relative w-[95%] mx-auto`}>
-              <input
-                type="text"
-                placeholder="Search or start a new chat"
-                className={`w-full py-1 pl-8 pr-4 rounded-md focus:outline-none ${
-                  isDark
-                    ? 'bg-bgDark text-white'
-                    : 'bg-white dark:bg-bgDark text-black dark:text-white'
-                } border-[1px] border-slate-200`}
-              />
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                <SearchOutlined
-                  className={`h-5 w-5 ${isDark ? 'text-white' : 'text-black'}`}
-                />
-              </span>
+            <p className="font-bold text-slate-800 dark:text-white">{activeTab === 'chats' ? 'Belum ada chat' : 'Belum ada kontak'}</p>
+            <p className="mt-2 text-sm leading-6">{activeTab === 'chats' ? 'Pilih kontak di tab Contacts untuk mulai chat.' : 'Tambahkan kontak dengan nomor yang sudah terdaftar.'}</p>
+            {activeTab === 'contacts' ? (
+              <button onClick={openCreateContact} className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#00a884] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#008f72]">
+                <IoPersonAdd /> Tambah kontak
+              </button>
+            ) : (
+              <button onClick={() => setActiveTab('contacts')} className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#00a884] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#008f72]">
+                Buka Contacts
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center px-8 text-center text-slate-500 dark:text-slate-400">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#e7f8f2] text-[#00a884]"><MdGroups size={34} /></div>
+            <p className="font-bold text-slate-800 dark:text-white">Belum ada group</p>
+            <p className="mt-2 text-sm leading-6">Buat group dari tombol group di atas.</p>
+          </div>
+        )}
+      </div>
+
+      <Modal open={openContact} onCancel={() => setOpenContact(false)} footer={null} centered width={460}>
+        <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900">
+          <div className="relative bg-gradient-to-br from-[#00a884] to-[#075e54] px-6 py-7 text-white">
+            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10" />
+            <div className="relative flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+                <IoPersonAdd size={28} />
+              </div>
+              <div>
+                <h2 className="text-xl font-black">{contactMode === 'edit' ? 'Update Kontak' : 'Tambah Kontak'}</h2>
+                <p className="mt-1 text-sm text-white/75">Nama kontak bebas sesuai penyimpanan kamu.</p>
+              </div>
             </div>
           </div>
-          <div className="w-full h-[83%] overflow-y-scroll  ">
-            <div className="flex flex-col gap-1">
-              {data?.map((el) => {
-                const isSelected = el.id === selectedItemId
-
-                return (
-                  <div
-                    className={`h-[60px] w-full flex py-2 px-3 rounded-lg ${
-                      isSelected ? 'bg-sky-700 text-white' : ''
-                    } hover:bg-sky-600 hover:text-white`}
-                    key={el.id}
-                    onClick={() => handleItemChat(el.id)}
-                  >
-                    <div className="w-[15%] flex justify-center items-center">
-                      <img
-                        src="https://image.gambarpng.id/pngs/gambar-transparent-boy-cartoon-illustration_46930.png"
-                        alt="profile"
-                        className="w-[45px] h-[45px] rounded-full"
-                      />
-                    </div>
-                    <div className="w-[85%] px-2 dark:text-white">
-                      <div className=" w-full flex justify-between ">
-                        <div>
-                          <p className="text-[15px] font-semibold">{el.nama}</p>
-                        </div>
-                        <div>
-                          <p className={`text-[12px] font-poppins`}>{el.jam}</p>
-                        </div>
-                      </div>
-                      <div className={`w-full flex items-center gap-1`}>
-                        <div>
-                          <p className="text-[13px] ">
-                            <PiChecksBold />
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[13px] ">
-                            {potongString(el.last, 25)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+          <div className="space-y-4 p-6">
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">Nama Kontak</span>
+              <Input className="h-12 rounded-2xl dark:bg-slate-800 dark:text-white" value={newContact.username} onChange={(e) => setNewContact((prev) => ({ ...prev, username: e.target.value }))} placeholder="Nama kontak" />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">Nomor Telepon</span>
+              <Input disabled={contactMode === 'edit'} className="h-12 rounded-2xl dark:bg-slate-800 dark:text-white" value={newContact.phoneNumber} onChange={(e) => setNewContact((prev) => ({ ...prev, phoneNumber: e.target.value }))} placeholder="0823888197372" />
+            </label>
+            <div className="flex items-center gap-3 rounded-2xl bg-[#e7f8f2] p-4 text-sm text-[#075e54] dark:bg-emerald-950/40 dark:text-emerald-200">
+              <IoShieldCheckmarkOutline size={22} />
+              <p>{contactMode === 'edit' ? 'Nomor telepon tidak diubah, hanya nama simpanan kontak.' : 'Nomor harus milik user yang sudah register di ChatRealtime.'}</p>
+            </div>
+            <div className="grid gap-3 pt-2 sm:grid-cols-2">
+              <button onClick={() => setOpenContact(false)} className="h-12 rounded-2xl border border-slate-200 font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                Batal
+              </button>
+              <button onClick={handleSaveContact} className="h-12 rounded-2xl bg-[#00a884] font-bold text-white transition hover:bg-[#008f72]">
+                {contactMode === 'edit' ? 'Update Kontak' : 'Simpan Kontak'}
+              </button>
             </div>
           </div>
         </div>
-      ) : null}
+      </Modal>
 
-      {/* Modal Add Contact */}
-      <Modal
-        title="Tambah Kontak"
-        visible={openAddContact}
-        onCancel={() => setOpenAddContact(false)}
-        onOk={handleAddContact}
-        width={400}
-      >
-        <Input
-          placeholder="Username"
-          autoComplete="off"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <Input
-          placeholder="Phone Number"
-          autoComplete="off"
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
-          style={{ marginTop: '10px' }}
-        />
+
+      <Modal open={openGroup} onCancel={() => setOpenGroup(false)} footer={null} centered width={520}>
+        <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900">
+          <div className="bg-gradient-to-br from-[#00a884] to-[#075e54] px-6 py-7 text-white">
+            <h2 className="text-xl font-black">Buat Group</h2>
+            <p className="mt-1 text-sm text-white/75">Admin otomatis adalah pembuat group.</p>
+          </div>
+          <div className="space-y-4 p-6">
+            <Input className="h-12 rounded-2xl dark:bg-slate-800 dark:text-white" value={newGroup.name} onChange={(e) => setNewGroup((prev) => ({ ...prev, name: e.target.value }))} placeholder="Nama group" />
+            <Input className="h-12 rounded-2xl dark:bg-slate-800 dark:text-white" value={newGroup.description} onChange={(e) => setNewGroup((prev) => ({ ...prev, description: e.target.value }))} placeholder="Deskripsi group" />
+            <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-300">Peserta terpilih</p>
+                <button onClick={() => { setDraftMemberIds(newGroup.memberIds); setOpenMemberPicker(true) }} className="rounded-full bg-[#00a884] px-4 py-2 text-sm font-bold text-white">Add</button>
+              </div>
+              {newGroup.memberIds.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {newGroup.memberIds.map((id) => {
+                    const contact = ContactPersonal.find((item) => item.Teman?.id === id)
+                    return (
+                      <span key={id} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm dark:bg-slate-900 dark:text-white">
+                        {contact?.username || contact?.Teman?.username || 'User'}
+                        <button onClick={() => setNewGroup((prev) => ({ ...prev, memberIds: prev.memberIds.filter((memberId) => memberId !== id) }))} className="text-rose-500">×</button>
+                      </span>
+                    )
+                  })}
+                </div>
+              ) : <p className="text-sm text-slate-400">Belum ada peserta. Klik Add untuk memilih kontak.</p>}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button onClick={() => setOpenGroup(false)} className="h-12 rounded-2xl border border-slate-200 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Batal</button>
+              <button onClick={handleCreateGroup} className="h-12 rounded-2xl bg-[#00a884] font-bold text-white">Buat Group</button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+
+      <Modal open={openMemberPicker} onCancel={() => setOpenMemberPicker(false)} footer={null} centered width={520}>
+        <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900">
+          <div className="bg-gradient-to-br from-[#00a884] to-[#075e54] px-6 py-7 text-white">
+            <h2 className="text-xl font-black">Pilih Peserta</h2>
+            <p className="mt-1 text-sm text-white/75">Klik kontak untuk menambahkan checklist hijau.</p>
+          </div>
+          <div className="max-h-[420px] overflow-y-auto p-5">
+            {ContactPersonal.length ? ContactPersonal.map((contact) => {
+              const checked = draftMemberIds.includes(contact.Teman?.id)
+              return (
+                <button key={contact.id} onClick={() => setDraftMemberIds((prev) => checked ? prev.filter((id) => id !== contact.Teman?.id) : [...prev, contact.Teman.id])} className={`mb-3 flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${checked ? 'border-[#00a884] bg-emerald-50 dark:bg-emerald-950/30' : 'border-slate-100 bg-slate-50 dark:border-slate-700 dark:bg-slate-800'}`}>
+                  <img src={getAvatarSrc(contact.Teman, contact.username)} className="h-12 w-12 rounded-full object-cover" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-slate-900 dark:text-white">{contact.username || contact.Teman?.username}</p>
+                    <p className="truncate text-sm text-slate-500 dark:text-slate-400">{contact.Teman?.about || contact.Teman?.phoneNumber}</p>
+                  </div>
+                  <span className={`flex h-7 w-7 items-center justify-center rounded-full font-black ${checked ? 'bg-[#00a884] text-white' : 'bg-white text-slate-300 dark:bg-slate-900'}`}>✓</span>
+                </button>
+              )
+            }) : <p className="py-8 text-center text-slate-500">Belum ada kontak untuk dipilih.</p>}
+          </div>
+          <div className="grid gap-3 border-t border-slate-100 p-5 dark:border-slate-800 sm:grid-cols-2">
+            <button onClick={() => setOpenMemberPicker(false)} className="h-12 rounded-2xl border border-slate-200 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Batal</button>
+            <button onClick={() => { setNewGroup((prev) => ({ ...prev, memberIds: draftMemberIds })); setOpenMemberPicker(false) }} className="h-12 rounded-2xl bg-[#00a884] font-bold text-white">Oke</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={openLogout} onCancel={() => setOpenLogout(false)} footer={null} centered width={420}>
+        <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900">
+          <div className="bg-gradient-to-br from-rose-500 to-orange-500 px-6 py-7 text-white">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+                <IoLogOutOutline size={30} />
+              </div>
+              <div>
+                <h2 className="text-xl font-black">Konfirmasi Logout</h2>
+                <p className="mt-1 text-sm text-white/80">Kamu yakin ingin keluar dari akun ini?</p>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-3 p-6 sm:grid-cols-2">
+            <button onClick={() => setOpenLogout(false)} className="h-12 rounded-2xl border border-slate-200 font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+              Batal
+            </button>
+            <button onClick={handleLogout} className="h-12 rounded-2xl bg-rose-500 font-bold text-white transition hover:bg-rose-600">
+              Ya, Logout
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   )
 }
 
-export default Sidabar
+export default Sidebar

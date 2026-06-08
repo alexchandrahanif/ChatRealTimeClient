@@ -1,6 +1,7 @@
 let initialState = {
   Users: [],
   User: {},
+  Profile: {},
 }
 
 export function UserReducer(state = initialState, actions) {
@@ -14,6 +15,11 @@ export function UserReducer(state = initialState, actions) {
       return {
         ...state,
         User: actions.payload,
+      }
+    case 'Fetch/GetProfile':
+      return {
+        ...state,
+        Profile: actions.payload,
       }
 
     default:
