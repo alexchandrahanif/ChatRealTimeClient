@@ -5,6 +5,7 @@ import { ContactReducer } from './reducer/contact'
 import { ChatReducer } from './reducer/chat'
 import { GroupChatReducer } from './reducer/groupChat'
 import { GroupReducer } from './reducer/group'
+import { StoryReducer } from './reducer/story'
 
 let reducer = combineReducers({
   UserReducer,
@@ -12,6 +13,7 @@ let reducer = combineReducers({
   ChatReducer,
   GroupChatReducer,
   GroupReducer,
+  StoryReducer,
 })
 
 const store = createStore(reducer, applyMiddleware(thunk))

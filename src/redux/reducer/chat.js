@@ -21,6 +21,22 @@ export function ChatReducer(state = initialState, actions) {
         ...state,
         Chat: actions.payload,
       }
+    case 'Presence/UpdateUserStatus':
+      return {
+        ...state,
+        Conversations: state.Conversations.map((conversation) => (
+          conversation.user?.id === actions.payload.userId
+            ? {
+                ...conversation,
+                user: {
+                  ...conversation.user,
+                  statusActive: actions.payload.status,
+                  lastLogin: actions.payload.lastLogin ?? conversation.user.lastLogin,
+                },
+              }
+            : conversation
+        )),
+      }
 
     default:
       return state

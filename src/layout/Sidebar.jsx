@@ -5,6 +5,7 @@ import { FiEdit, FiLogOut } from 'react-icons/fi'
 import { MdGroups } from 'react-icons/md'
 import { HiEllipsisVertical } from 'react-icons/hi2'
 import {
+  IoAddCircleOutline,
   IoChatbubbleEllipsesOutline,
   IoLogOutOutline,
   IoPersonAdd,
@@ -23,6 +24,8 @@ import {
 import { getProfile } from '../redux/action/user'
 import { createGroup, getAllGroupPersonal } from '../redux/action/group'
 import { getConversations } from '../redux/action/chat'
+import { createStory, deleteStory, getStories, viewStory } from '../redux/action/story'
+import { cropImageToSquare } from '../utils/cropImage'
 
 const avatarUrl =
   'https://api.dicebear.com/8.x/personas/svg?backgroundColor=b6e3f4,c0aede,d1d4f9&seed='
@@ -40,6 +43,7 @@ const Sidebar = () => {
   const { Profile } = useSelector((state) => state.UserReducer)
   const { GroupPersonal } = useSelector((state) => state.GroupReducer)
   const { Conversations } = useSelector((state) => state.ChatReducer)
+  const { Stories } = useSelector((state) => state.StoryReducer)
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState('chats')
   const [openContact, setOpenContact] = useState(false)
@@ -50,7 +54,15 @@ const Sidebar = () => {
   const [newContact, setNewContact] = useState({ username: '', phoneNumber: '' })
   const [newGroup, setNewGroup] = useState({ name: '', description: '', memberIds: [] })
   const [openMemberPicker, setOpenMemberPicker] = useState(false)
+  const [openStory, setOpenStory] = useState(false)
+  const [openStoryViewer, setOpenStoryViewer] = useState(false)
+  const [selectedStory, setSelectedStory] = useState(null)
+  const [selectedStoryGroup, setSelectedStoryGroup] = useState([])
+  const [selectedStoryIndex, setSelectedStoryIndex] = useState(0)
+  const [storyText, setStoryText] = useState('')
+  const [storyImage, setStoryImage] = useState(null)
   const [draftMemberIds, setDraftMemberIds] = useState([])
+  const [typingUserId, setTypingUserId] = useState(null)
   const [isDarkMode, setIsDarkMode] = useState(() =>
     document.documentElement.classList.contains('dark'),
   )
@@ -68,6 +80,7 @@ const Sidebar = () => {
     dispatch(getAllContactPersonal())
     dispatch(getAllGroupPersonal())
     dispatch(getConversations())
+    dispatch(getStories())
   }, [dispatch])
 
   const contacts = useMemo(() => {
@@ -89,6 +102,31 @@ const Sidebar = () => {
   const visibleContacts = contacts
 
   const groups = GroupPersonal || []
+  const stories = Stories || []
+  const storyGroups = useMemo(() => {
+    const grouped = new Map()
+    stories.forEach((story) => {
+      const ownerId = story.Owner?.id
+      if (!ownerId) return
+      grouped.set(ownerId, [...(grouped.get(ownerId) || []), story])
+    })
+    return Array.from(grouped.values()).map((items) => items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)))
+  }, [stories])
+  const findStoryGroupByUserId = (userId) => storyGroups.find((items) => items[0]?.Owner?.id === userId)
+  const getStoryRingStyle = (items = []) => {
+    if (!items.length) return undefined
+    const allViewed = items.every((story) => story.viewedByMe)
+    const color = allViewed ? '#cbd5e1' : '#00a884'
+    const count = Math.min(items.length, 12)
+    if (count === 1) return { background: color }
+    const gap = Math.min(7, Math.max(3, 14 / count))
+    const segments = Array.from({ length: count }, (_, index) => {
+      const start = (360 / count) * index
+      const end = start + (360 / count) - gap
+      return `${color} ${start}deg ${end}deg, transparent ${end}deg ${start + 360 / count}deg`
+    })
+    return { background: `conic-gradient(${segments.join(', ')})` }
+  }
 
   const openCreateContact = () => {
     setContactMode('create')
@@ -152,6 +190,87 @@ const Sidebar = () => {
     }
   }
 
+  const handleCreateStory = async () => {
+    if (!storyText.trim() && !storyImage) {
+      message.error('Story wajib berisi text atau gambar')
+      return
+    }
+
+    const payload = new FormData()
+    payload.append('text', storyText.trim())
+    if (storyImage) payload.append('image', storyImage)
+
+    const result = await dispatch(createStory(payload))
+    if (result?.statusCode === 201) {
+      message.success('Story berhasil dibuat')
+      setStoryText('')
+      setStoryImage(null)
+      setOpenStory(false)
+      dispatch(getStories())
+    } else {
+      message.error(result?.response?.data?.message || 'Gagal membuat story')
+    }
+  }
+
+  const cropStoryImage = async () => {
+    if (!storyImage) return
+    setStoryImage(await cropImageToSquare(storyImage))
+  }
+
+  const openViewStory = async (storyGroup = [], initialIndex) => {
+    const nextIndex = typeof initialIndex === 'number'
+      ? initialIndex
+      : Math.max(storyGroup.findIndex((story) => !story.viewedByMe), 0)
+    const story = storyGroup[nextIndex]
+    if (!story) return
+
+    setSelectedStoryGroup(storyGroup)
+    setSelectedStoryIndex(nextIndex)
+    setSelectedStory(story)
+    setOpenStoryViewer(true)
+    await dispatch(viewStory(story.id))
+    dispatch(getStories())
+  }
+
+  const moveStory = (direction) => {
+    const nextIndex = selectedStoryIndex + direction
+    if (nextIndex < 0 || nextIndex >= selectedStoryGroup.length) return
+    openViewStory(selectedStoryGroup, nextIndex)
+  }
+
+  useEffect(() => {
+    if (!openStoryViewer || !selectedStory) return undefined
+
+    const timer = setTimeout(() => {
+      if (selectedStoryIndex < selectedStoryGroup.length - 1) {
+        openViewStory(selectedStoryGroup, selectedStoryIndex + 1)
+        return
+      }
+
+      setOpenStoryViewer(false)
+      setSelectedStory(null)
+      setSelectedStoryGroup([])
+      setSelectedStoryIndex(0)
+    }, 5000)
+
+    return () => clearTimeout(timer)
+  }, [openStoryViewer, selectedStory, selectedStoryGroup, selectedStoryIndex])
+
+  const handleDeleteStory = async () => {
+    if (!selectedStory?.id) return
+    const result = await dispatch(deleteStory(selectedStory.id))
+    if (result?.statusCode === 200) {
+      message.success('Story berhasil dihapus')
+      setOpenStoryViewer(false)
+      setSelectedStory(null)
+      setSelectedStoryGroup([])
+      setSelectedStoryIndex(0)
+      dispatch(getStories())
+    } else {
+      message.error(result?.response?.data?.message || 'Gagal hapus story')
+    }
+  }
+
   const handleLogout = () => {
     localStorage.clear()
     navigate('/login')
@@ -161,22 +280,37 @@ const Sidebar = () => {
     const socket = window.chatSocket
     if (!socket) return undefined
 
-    const refreshPresence = () => {
+    const refreshPresence = (payload) => {
+      if (payload?.userId) {
+        dispatch({ type: 'Presence/UpdateUserStatus', payload })
+      }
       dispatch(getAllContactPersonal())
       dispatch(getConversations())
+    }
+    const handleTypingStatus = ({ userId, ReceiverId, isTyping }) => {
+      if (ReceiverId && Profile?.id && Number(ReceiverId) !== Number(Profile.id)) return
+      setTypingUserId(isTyping ? userId : null)
     }
 
     socket.on('updateOnlineStatus', refreshPresence)
     socket.on('newPersonalMessage', refreshPresence)
     socket.on('personalMessageUpdated', refreshPresence)
     socket.on('personalMessageDeleted', refreshPresence)
+    socket.on('storyCreated', refreshPresence)
+    socket.on('storyViewed', refreshPresence)
+    socket.on('storyDeleted', refreshPresence)
+    socket.on('userTyping', handleTypingStatus)
     return () => {
       socket.off('updateOnlineStatus', refreshPresence)
       socket.off('newPersonalMessage', refreshPresence)
       socket.off('personalMessageUpdated', refreshPresence)
       socket.off('personalMessageDeleted', refreshPresence)
+      socket.off('storyCreated', refreshPresence)
+      socket.off('storyViewed', refreshPresence)
+      socket.off('storyDeleted', refreshPresence)
+      socket.off('userTyping', handleTypingStatus)
     }
-  }, [dispatch])
+  }, [Profile?.id, dispatch])
 
   const toggleDarkMode = () => {
     const nextMode = !isDarkMode
@@ -186,6 +320,12 @@ const Sidebar = () => {
   }
 
   const headerMenuItems = [
+    {
+      key: 'profile',
+      label: 'Profile saya',
+      icon: <IoPersonAdd size={18} />,
+      onClick: () => navigate('/profile'),
+    },
     {
       key: 'theme',
       label: isDarkMode ? 'Light mode' : 'Dark mode',
@@ -236,8 +376,8 @@ const Sidebar = () => {
 
       <div className="border-b border-slate-100 bg-white px-3 py-3 dark:border-slate-800 dark:bg-slate-900">
         <h1 className="mb-3 px-1 text-2xl font-black text-slate-900 dark:text-white">ChatRealtime</h1>
-        <div className="mb-3 grid grid-cols-3 gap-2 rounded-2xl bg-[#f0f2f5] p-1 dark:bg-slate-800">
-          {[['chats', 'Chats'], ['contacts', 'Contacts'], ['groups', 'Groups']].map(([key, label]) => (
+        <div className="mb-3 grid grid-cols-4 gap-2 rounded-2xl bg-[#f0f2f5] p-1 dark:bg-slate-800">
+          {[['chats', 'Chats'], ['contacts', 'Contacts'], ['groups', 'Groups'], ['stories', 'Story']].map(([key, label]) => (
             <button key={key} onClick={() => setActiveTab(key)} className={`rounded-xl px-2 py-2 text-xs font-black transition ${activeTab === key ? 'bg-white text-[#00a884] shadow-sm dark:bg-slate-900' : 'text-slate-500 dark:text-slate-400'}`}>
               {label}
             </button>
@@ -255,7 +395,31 @@ const Sidebar = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
-        {activeTab === 'groups' && groups.length > 0 ? (
+        {activeTab === 'stories' ? (
+          <div className="border-b border-slate-100 py-2 dark:border-slate-800">
+            <div className="flex items-center justify-between px-4 py-2">
+              <p className="text-xs font-black uppercase tracking-wider text-slate-400">Stories 24 Jam</p>
+              <button onClick={() => setOpenStory(true)} className="inline-flex items-center gap-1 rounded-full bg-[#00a884] px-3 py-1.5 text-xs font-bold text-white"><IoAddCircleOutline /> Buat</button>
+            </div>
+            {storyGroups.length ? storyGroups.map((items) => {
+              const story = items[0]
+              const owner = story.Owner || {}
+              const isMine = owner.id === Profile?.id
+              const unseenCount = items.filter((item) => !item.viewedByMe).length
+              return (
+                <button key={owner.id} onClick={() => openViewStory(items)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800">
+                  <span className="rounded-full p-0.5" style={getStoryRingStyle(items)}>
+                    <img src={getAvatarSrc(owner, owner.username)} className="h-12 w-12 rounded-full border-2 border-white object-cover dark:border-slate-900" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-slate-900 dark:text-white">{isMine ? 'Story saya' : owner.username}</p>
+                    <p className="truncate text-sm text-slate-500 dark:text-slate-400">{items.length} story{unseenCount ? ` • ${unseenCount} belum dilihat` : ''}{isMine ? ` • ${items.reduce((total, item) => total + (item.viewCount || 0), 0)} dilihat` : ''}</p>
+                  </div>
+                </button>
+              )
+            }) : <p className="px-4 py-8 text-center text-sm text-slate-500">Belum ada story aktif.</p>}
+          </div>
+        ) : activeTab === 'groups' && groups.length > 0 ? (
           <div className="border-b border-slate-100 py-2 dark:border-slate-800">
             <p className="px-4 py-2 text-xs font-black uppercase tracking-wider text-slate-400">Groups</p>
             {groups.map((group) => (
@@ -276,17 +440,25 @@ const Sidebar = () => {
             const displayName = contact?.username || friend.phoneNumber || friend.username || 'Unknown'
             const isActive = friend.phoneNumber === phoneNumber
             const lastMessage = conversation.lastMessage
+            const friendStoryGroup = findStoryGroupByUserId(friend.id)
 
             return (
               <div key={friend.id} className={`group flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[#f5f6f6] dark:hover:bg-slate-800 ${isActive ? 'bg-[#f0f2f5] dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}>
                 <button onClick={() => navigate(`/${friend.phoneNumber}`)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                  <img src={getAvatarSrc(friend, displayName)} alt={displayName} className="h-12 w-12 shrink-0 rounded-full bg-slate-200 object-cover" />
+                  <span onClick={(event) => { if (friendStoryGroup) { event.stopPropagation(); openViewStory(friendStoryGroup) } }} className="shrink-0 rounded-full p-0.5" style={getStoryRingStyle(friendStoryGroup)}>
+                    <img src={getAvatarSrc(friend, displayName)} alt={displayName} className="h-12 w-12 rounded-full border-2 border-white bg-slate-200 object-cover dark:border-slate-900" />
+                  </span>
                   <div className="min-w-0 flex-1 border-b border-slate-100 pb-3 dark:border-slate-800">
                     <div className="flex items-center justify-between gap-3">
                       <p className="truncate text-[15px] font-semibold text-slate-900 dark:text-white">{displayName}</p>
                       <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">{lastMessage?.createdAt ? new Date(lastMessage.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                     </div>
-                    <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">{lastMessage?.message || (lastMessage?.messageImage ? '📷 Gambar' : 'Mulai chat')}</p>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <p className={`min-w-0 flex-1 truncate text-sm ${typingUserId === friend.id ? 'font-semibold text-[#00a884]' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {typingUserId === friend.id ? 'sedang mengetik...' : lastMessage?.message || (lastMessage?.messageImage ? '📷 Gambar' : 'Mulai chat')}
+                      </p>
+                      {conversation.unreadCount > 0 ? <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[#00a884] px-2 text-xs font-black text-white">{conversation.unreadCount}</span> : null}
+                    </div>
                   </div>
                 </button>
               </div>
@@ -297,6 +469,7 @@ const Sidebar = () => {
             const friend = contact.Teman || {}
             const displayName = contact.username || friend.username || 'Unknown'
             const isActive = friend.phoneNumber === phoneNumber
+            const friendStoryGroup = findStoryGroupByUserId(friend.id)
 
             return (
               <div
@@ -304,7 +477,9 @@ const Sidebar = () => {
                 className={`group flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[#f5f6f6] dark:hover:bg-slate-800 ${isActive ? 'bg-[#f0f2f5] dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}
               >
                 <button onClick={() => navigate(`/${friend.phoneNumber}`)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                  <img src={getAvatarSrc(friend, displayName)} alt={displayName} className="h-12 w-12 shrink-0 rounded-full bg-slate-200 object-cover" />
+                  <span onClick={(event) => { if (friendStoryGroup) { event.stopPropagation(); openViewStory(friendStoryGroup) } }} className="shrink-0 rounded-full p-0.5" style={getStoryRingStyle(friendStoryGroup)}>
+                    <img src={getAvatarSrc(friend, displayName)} alt={displayName} className="h-12 w-12 rounded-full border-2 border-white bg-slate-200 object-cover dark:border-slate-900" />
+                  </span>
                   <div className="min-w-0 flex-1 border-b border-slate-100 pb-3 dark:border-slate-800">
                     <div className="flex items-center justify-between gap-3">
                       <p className="truncate text-[15px] font-semibold text-slate-900 dark:text-white">{displayName}</p>
@@ -450,6 +625,63 @@ const Sidebar = () => {
           <div className="grid gap-3 border-t border-slate-100 p-5 dark:border-slate-800 sm:grid-cols-2">
             <button onClick={() => setOpenMemberPicker(false)} className="h-12 rounded-2xl border border-slate-200 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Batal</button>
             <button onClick={() => { setNewGroup((prev) => ({ ...prev, memberIds: draftMemberIds })); setOpenMemberPicker(false) }} className="h-12 rounded-2xl bg-[#00a884] font-bold text-white">Oke</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={openStory} onCancel={() => setOpenStory(false)} footer={null} centered width={480}>
+        <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900">
+          <div className="bg-gradient-to-br from-[#00a884] to-[#075e54] px-6 py-7 text-white">
+            <h2 className="text-xl font-black">Buat Story</h2>
+            <p className="mt-1 text-sm text-white/75">Story text/gambar akan otomatis hilang setelah 24 jam.</p>
+          </div>
+          <div className="space-y-4 p-6">
+            <Input.TextArea rows={4} className="rounded-2xl dark:bg-slate-800 dark:text-white" value={storyText} onChange={(e) => setStoryText(e.target.value)} placeholder="Tulis status kamu..." />
+            <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-dashed border-slate-300 p-4 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:text-slate-300">
+              <span>{storyImage ? storyImage.name : 'Upload gambar story'}</span>
+              <span className="rounded-full bg-[#00a884] px-3 py-1 text-xs text-white">Pilih</span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => setStoryImage(e.target.files?.[0] || null)} />
+            </label>
+            {storyImage ? <div className="relative"><img src={URL.createObjectURL(storyImage)} className="max-h-72 w-full rounded-2xl object-cover" /><button onClick={cropStoryImage} className="absolute bottom-3 left-3 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white">crop 1:1</button></div> : null}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button onClick={() => setOpenStory(false)} className="h-12 rounded-2xl border border-slate-200 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Batal</button>
+              <button onClick={handleCreateStory} className="h-12 rounded-2xl bg-[#00a884] font-bold text-white">Publish</button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={openStoryViewer} onCancel={() => setOpenStoryViewer(false)} footer={null} centered width={520}>
+        <div className="relative overflow-hidden rounded-3xl bg-slate-950 text-white">
+          <div className="flex gap-1 px-4 pt-4">
+            {selectedStoryGroup.map((story, index) => (
+              <button key={story.id} onClick={() => openViewStory(selectedStoryGroup, index)} className="h-1 flex-1 overflow-hidden rounded-full bg-white/25">
+                <span
+                  key={`${story.id}-${selectedStoryIndex}`}
+                  className={`block h-full rounded-full bg-white ${index < selectedStoryIndex ? 'w-full' : index === selectedStoryIndex ? 'story-progress-fill' : 'w-0'}`}
+                />
+              </button>
+            ))}
+          </div>
+          {selectedStoryIndex > 0 ? <button onClick={() => moveStory(-1)} className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-2xl font-black">‹</button> : null}
+          {selectedStoryIndex < selectedStoryGroup.length - 1 ? <button onClick={() => moveStory(1)} className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-2xl font-black">›</button> : null}
+          {selectedStory?.image ? <img src={`${API_BASE_URL}/${selectedStory.image.replace(/^\.\//, '')}`} className="max-h-[55vh] w-full object-contain" /> : null}
+          <div className="space-y-4 p-6">
+            <div className="flex items-center gap-3">
+              <img src={getAvatarSrc(selectedStory?.Owner, selectedStory?.Owner?.username)} className="h-12 w-12 rounded-full object-cover" />
+              <div className="min-w-0 flex-1">
+                <p className="font-bold">{selectedStory?.Owner?.id === Profile?.id ? 'Story saya' : selectedStory?.Owner?.username}</p>
+                <p className="text-xs text-white/55">Story {selectedStoryIndex + 1}/{selectedStoryGroup.length || 1} • Kadaluarsa {selectedStory?.expiresAt ? new Date(selectedStory.expiresAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}</p>
+              </div>
+            </div>
+            {selectedStory?.text ? <p className="whitespace-pre-wrap rounded-2xl bg-white/10 p-4 text-lg font-semibold leading-7">{selectedStory.text}</p> : null}
+            {selectedStory?.Owner?.id === Profile?.id ? <div className="rounded-2xl bg-white/10 p-4">
+              <p className="mb-3 text-sm font-bold">Dilihat oleh {selectedStory?.viewCount || 0} orang</p>
+              <div className="max-h-32 space-y-2 overflow-y-auto">
+                {selectedStory?.Views?.length ? selectedStory.Views.map((view) => <div key={view.id} className="flex items-center gap-2 text-sm text-white/80"><img src={getAvatarSrc(view.Viewer, view.Viewer?.username)} className="h-7 w-7 rounded-full object-cover" /><span>{view.Viewer?.username || view.Viewer?.phoneNumber}</span></div>) : <p className="text-sm text-white/50">Belum ada yang membaca.</p>}
+              </div>
+            </div> : null}
+            {selectedStory?.Owner?.id === Profile?.id ? <button onClick={handleDeleteStory} className="h-12 w-full rounded-2xl bg-rose-500 font-bold text-white">Hapus Story</button> : null}
           </div>
         </div>
       </Modal>

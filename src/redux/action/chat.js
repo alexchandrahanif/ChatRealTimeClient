@@ -63,7 +63,10 @@ export function createChat(body) {
         url: `/chat`,
         method: 'POST',
         data: body,
-        headers: body instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+        headers:
+          body instanceof FormData
+            ? { 'Content-Type': 'multipart/form-data' }
+            : undefined,
       })
 
       return data
@@ -76,13 +79,13 @@ export function createChat(body) {
 export function updateChat(id, data) {
   return async (dispatch) => {
     try {
-      const { data } = await api({
+      const response = await api({
         url: `/chat/${id}`,
         method: 'PATCH',
         data,
       })
 
-      return data
+      return response.data
     } catch (error) {
       return error
     }

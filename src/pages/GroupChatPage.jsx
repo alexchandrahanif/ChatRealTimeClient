@@ -9,6 +9,7 @@ import { Modal, Popover, message } from 'antd'
 import { API_BASE_URL } from '../config/api'
 import { createGroupChat, getAllGroupChatPersonal } from '../redux/action/chatGroup'
 import { getOneGroup, memberLeaveGroup } from '../redux/action/group'
+import { cropImageToSquare } from '../utils/cropImage'
 
 const avatarUrl = 'https://api.dicebear.com/8.x/shapes/svg?seed='
 const emojis = ['😀', '😂', '😍', '🥳', '👍', '🙏', '🔥', '❤️', '😎', '😭', '😅', '👌']
@@ -24,9 +25,14 @@ const GroupChatPage = () => {
   const { Group } = useSelector((state) => state.GroupReducer)
   const { GroupChatPersonal } = useSelector((state) => state.GroupChatReducer)
   const [text, setText] = useState('')
-  const [imageFile, setImageFile] = useState(null)
+  const [imageFiles, setImageFiles] = useState([])
   const [openInfo, setOpenInfo] = useState(false)
   const currentEmail = localStorage.getItem('email')
+
+  const cropSelectedImage = async (index) => {
+    const cropped = await cropImageToSquare(imageFiles[index])
+    setImageFiles((prev) => prev.map((file, fileIndex) => (fileIndex === index ? cropped : file)))
+  }
 
   useEffect(() => {
     dispatch(getOneGroup(groupId))
@@ -39,15 +45,15 @@ const GroupChatPage = () => {
   const currentMember = members.find((member) => member.User?.email === currentEmail)
 
   const sendMessage = async () => {
-    if (!text.trim() && !imageFile) return message.warning('Pesan kosong')
+    if (!text.trim() && imageFiles.length === 0) return message.warning('Pesan kosong')
     const payload = new FormData()
     payload.append('GroupId', groupId)
     payload.append('message', text.trim())
-    if (imageFile) payload.append('messageImage', imageFile)
+    imageFiles.forEach((file) => payload.append('messageImage', file))
     const result = await dispatch(createGroupChat(payload))
     if (result?.statusCode === 201) {
       setText('')
-      setImageFile(null)
+      setImageFiles([])
       dispatch(getAllGroupChatPersonal(groupId))
     } else {
       message.error(result?.response?.data?.message || 'Gagal mengirim pesan group')
@@ -96,11 +102,11 @@ const GroupChatPage = () => {
         </div>
       </main>
 
-      {imageFile ? <div className="bg-[#f0f2f5] px-4 py-2 dark:bg-slate-800"><span className="rounded-xl bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:text-white">{imageFile.name} <button onClick={() => setImageFile(null)} className="ml-2 text-rose-500">hapus</button></span></div> : null}
+      {imageFiles.length ? <div className="bg-[#f0f2f5] px-4 py-2 dark:bg-slate-800"><div className="flex gap-3 overflow-x-auto rounded-2xl bg-white p-3 dark:bg-slate-900">{imageFiles.map((file, index) => <div key={`${file.name}-${index}`} className="relative shrink-0"><img src={URL.createObjectURL(file)} className="h-20 w-20 rounded-xl object-cover" /><button onClick={() => cropSelectedImage(index)} className="absolute bottom-1 left-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white">crop</button><button onClick={() => setImageFiles((prev) => prev.filter((_, fileIndex) => fileIndex !== index))} className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-rose-500 text-xs font-black text-white">×</button></div>)}</div></div> : null}
       <footer className="flex gap-2 bg-[#f0f2f5] px-4 py-3 dark:bg-slate-800">
         <Popover content={<div className="grid grid-cols-6 gap-2 text-xl">{emojis.map((emoji) => <button key={emoji} onClick={() => setText((prev) => `${prev}${emoji}`)}>{emoji}</button>)}</div>} trigger="click"><button><SlEmotsmile size={23} /></button></Popover>
         <button onClick={() => fileInputRef.current?.click()}><AiOutlinePaperClip size={24} /></button>
-        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
+        <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => setImageFiles((prev) => [...prev, ...Array.from(e.target.files || [])])} />
         <textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }} rows={1} className="min-h-[44px] flex-1 resize-none rounded-2xl border-none px-4 py-3 dark:bg-slate-900 dark:text-white" placeholder="Type group message" />
         <button onClick={sendMessage} className="flex h-11 w-11 items-center justify-center rounded-full bg-[#00a884] text-white"><VscSend /></button>
       </footer>

@@ -2,6 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+.dark input::placeholder,
+.dark textarea::placeholder,
+.dark .ant-input::placeholder,
+.dark .ant-input-password input::placeholder,
+.dark .ant-input-affix-wrapper input::placeholder {
+  color: rgb(148 163 184) !important;
+  opacity: 1;
+}
+
+.dark .ant-input,
+.dark .ant-input-affix-wrapper,
+.dark .ant-input-password {
+  color: #fff;
+}
+
+@keyframes story-progress-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.story-progress-fill {
+  animation: story-progress-fill 5s linear forwards;
+}
+
 
 /* Mengatur lebar scrollbar menjadi lebih tipis */
 ::-webkit-scrollbar {

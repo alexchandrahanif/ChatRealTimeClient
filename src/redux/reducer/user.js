@@ -21,6 +21,17 @@ export function UserReducer(state = initialState, actions) {
         ...state,
         Profile: actions.payload,
       }
+    case 'Presence/UpdateUserStatus':
+      return {
+        ...state,
+        User: state.User?.id === actions.payload.userId
+          ? {
+              ...state.User,
+              statusActive: actions.payload.status,
+              lastLogin: actions.payload.lastLogin ?? state.User.lastLogin,
+            }
+          : state.User,
+      }
 
     default:
       return state
